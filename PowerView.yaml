@@ -164,8 +164,39 @@ paths:
           description: Internal server error.
 components:
   schemas:
+    ActivatedScenes:
+      type: object
+      properties:
+        sceneIds:
+          description: 'List of activated scenes.'
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueId'
+    ActivatedShades:
+      type: object
+      properties:
+        shadeIds:
+          description: 'List of affected shades.'
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueId'
     AutoBackup:
       description: 'When true, backups will be sent periodically to the Hunter Douglas server. Otherwise, no automatic backups will occur.'
+      type: boolean
+    BatteryStatus:
+      description: ' 0 = No Status Available, 1 = Low, 2 = Medium, 3 = High, 4 = Plugged In'
+      type: number
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+    BatteryStrength:
+      description: 'The current strength of the battery.'
+      type: integer
+    BlinkEnabled:
+      description: 'Enable repeater blinking.'
       type: boolean
     Color:
       description: 'Specifies the colors of the LEDs.'
@@ -199,6 +230,16 @@ components:
         - green
         - red
         - brightness
+    ColorId:
+      description: 'Id of the resource display color.'
+      type: integer
+      format: int32
+    DeviceTypes:
+      description: 'Device type (0 = shade, 1 = repeater). If this field is missing, the scene member is assumed to be a shade.'
+      type: integer
+      enum:
+        - 0
+        - 1
     Dns:
       description: 'The DNS server IP address used by the hub.'
       type: string
@@ -225,6 +266,7 @@ components:
           maximum: 255
           example: 2
         subRevision:
+          description: 'Minor firmware version number.'
           type: integer
           minimum: 0
           maximum: 255
@@ -236,6 +278,9 @@ components:
     Gateway:
       description: 'The gateway IP address used by the hub.'
       type: string
+    GroupId:
+      description: 'Unique id of the associated group.'
+      type: integer
     HomeAutomationActive:
       description: 'Returns true when the hub has sent a position set to a shade but the followup position request is not yet complete.'
       type: boolean
@@ -312,9 +357,6 @@ components:
             $ref: '#/components/schemas/HomeautomationReport'
       required:
        - report
-    HubName:
-      description: 'Base64-encoded hub name.'
-      type: string
     HubFirmware:
       description: 'There are multiple processors in the hub (the primary processor and the Nordic chip for RF processing); the "mainProcessor" sub-key is intended to indicate that the firmware information being returned is for the main processor on the hub, not the Nordic.'
       type: object
@@ -326,12 +368,14 @@ components:
       required:
         - mainProcessor
         - radio
-    HubFirmwareObject:
-      properties:
-        firmware:
-          $ref: '#/components/schemas/HubFirmware'
-      required:
-        - firmware
+    HubName:
+      description: 'Base64-encoded hub name.'
+      type: string
+      format: byte
+    IconId:
+      description: 'Id of the resource display icon.'
+      type: integer
+      format: int32
     IpAddress:
       type: string
     Latitude:
@@ -357,9 +401,20 @@ components:
     Mask:
       description: 'The network mask used by the hub.'
       type: string
+    Name:
+      description: 'Base64 encoded name.'
+      type: string
+      format: byte
+    NetworkNumber:
+      description: 'Unique scene index value loading into a shade.'
+      type: integer
     Offset:
       description: 'Number of seconds before or after UTC.'
       type: integer
+    Order:
+      description: 'Display order of the resource.'
+      type: integer
+      format: int32
     PositionKind1:
       description: 'The type of position - 0 = None, 1 = Primary Rail, 2 = Secondary Rail, 3 = Vane Tilt, 4 = Error.'
       type: integer
@@ -388,6 +443,9 @@ components:
       type: integer
       minimum: 0
       maximum: 65535
+    RepeaterId:
+      description: ' The repeater id associated to this member.'
+      type: integer
     RfID:
       description: 'The ID of the RF network on which the hub talks to shades, represented in hexadecimal. 0x1111 or 0xFFFF both mean "no network set.'
       type: string
@@ -400,14 +458,216 @@ components:
       enum:
         - 0
         - 1
+    Room:
+      type: object
+      properties:
+        colorId:
+          $ref: '#/components/schemas/ColorId'
+        iconId:
+          $ref: '#/components/schemas/IconId'
+        id:
+          $ref: '#/components/schemas/UniqueId'
+        name: 
+          $ref: '#/components/schemas/Name'
+        order:
+          $ref: '#/components/schemas/Order'
+        type:
+          $ref: '#/components/schemas/RoomType'
+      required:
+        - colorId
+        - iconId
+        - id
+        - name
+        - order
+        - type
+    RoomId:
+      description: 'Unique id of the associated room.'
+      type: integer
+    RoomObject:
+      type: object
+      properties:
+        room:
+          $ref: '#/components/schemas/Room'
+      required:
+        - room
+    RoomType:
+      description: 'Room type (0 = Regular room, 1 = Repeater Room, 2 = Default Room).'
+      type: integer
+      enum:
+        - 0
+        - 1
+        - 2
+    RoomsResponse:
+      type: object
+      properties:
+        roomData:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+        roomIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueId'
+      required: 
+        - roomData
+        - roomIds
+    Scene:
+      type: object
+      properties: 
+        colorId:
+          $ref: '#/components/schemas/ColorId'
+        iconId:
+          $ref: '#/components/schemas/IconId'
+        id:
+          $ref: '#/components/schemas/UniqueId'
+        name:
+          $ref: '#/components/schemas/Name'
+        networkNumber:
+          $ref: '#/components/schemas/NetworkNumber'
+        order:
+          $ref: '#/components/schemas/Order'
+        roomId:
+          $ref: '#/components/schemas/RoomId'
+      required:
+        - colorId
+        - iconId
+        - id
+        - name
+        - networkNumber
+        - order
+        - roomId
+    SceneCollection:
+      type: object
+      properties:
+        colorId:
+          $ref: '#/components/schemas/ColorId'
+        iconId:
+          $ref: '#/components/schemas/IconId'
+        id:
+          $ref: '#/components/schemas/UniqueId'
+        name:
+          $ref: '#/components/schemas/Name'
+        order:
+          $ref: '#/components/schemas/Order'
+      required:
+        - colorId
+        - iconId
+        - id
+        - name
+        - order
+    SceneCollectionId:
+      description: 'The id of the scene collection to which this member belongs.'
+      type: integer
+    SceneCollectionObject:
+      type: object
+      properties:
+        sceneCollection:
+          $ref: '#/components/schemas/SceneCollection'
+      required:
+        - sceneCollection
+    SceneCollectionsResponse:
+      type: object
+      properties: 
+        sceneCollectionData:
+          type: array
+          items:
+            $ref: '#/components/schemas/SceneCollection'
+        sceneCollectionIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueId'
+      required:
+        - sceneCollectionData
+        - sceneCollectionIds
+    SceneObject:
+      type: object
+      properties:
+        scene:
+          $ref: '#/components/schemas/Scene'
+      required:
+        - scene
+    ScenesResponse:
+      type: object
+      properties:
+        sceneData:
+          description: 'Scene data for included scenes.'
+          type: array
+          items:
+            $ref: '#/components/schemas/Scene'
+        sceneIds:
+          description: 'Unique ids of all scenes.'
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueId'
+      required: 
+        - sceneData
+        - sceneIds
     SerialNumber:
       description: 'The unique id/serial number of the hub or device.'
       type: string
     SetupComplete:
       description: 'Indicates whether the initial setup of a hub has been completed.'
       type: boolean
+    Shade:
+      type: object
+      properties:
+        batteryStatus:
+          $ref: '#/components/schemas/BatteryStatus'
+        batteryStrength:
+          $ref: '#/components/schemas/BatteryStrength'
+        firmware:
+          $ref: '#/components/schemas/ShadeFirmware'
+        groupId:
+          $ref: '#/components/schemas/GroupId'
+        id:
+          $ref: '#/components/schemas/UniqueId'
+        name:
+          $ref: '#/components/schemas/Name'
+        order:
+          $ref: '#/components/schemas/Order'
+        positions:
+          $ref: '#/components/schemas/ShadePosition'
+        roomId:
+          $ref: '#/components/schemas/RoomId'
+        secondaryName:
+          $ref: '#/components/schemas/ShadeSecondaryName'
+        type:
+          $ref: '#/components/schemas/ShadeType'
+      required:
+        - batteryStatus
+        - batteryStrength
+        - id
+        - type
+    ShadeData:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueId'
+        type:
+          $ref: '#/components/schemas/ShadeType'
+      required:
+        - id
+        - type
+    ShadeFirmware:
+      allOf:
+        - $ref: '#/components/schemas/Firmware'
+        - properties:
+            index:
+              description: 'The index number.'
+              type: integer
+              example: 25
+      required:
+        - index
     ShadeId:
-      $ref: '#/components/schemas/UniqueId'
+      description: 'The id of the associated shade.'
+      type: integer
+    ShadeObject:
+      type: object
+      properties: 
+        shade:
+          $ref: '#/components/schemas/Shade'
+      required: 
+        - shade
     ShadePosition:
       description: |
         Specifies the position of the shade. Top-down shades are in the same coordinate space as bottom-up
@@ -430,9 +690,63 @@ components:
       required:
         - posKind1
         - position1
+    ShadeRequest:
+      allOf:
+        - $ref: '#/components/schemas/Shade'
+        - properties:
+            timedOut:
+              description: 'Did the shade not respond to the request.'
+              type: boolean
+              example: true
+      required:
+        - timedOut
+    ShadeRequestObject:
+      type: object
+      properties: 
+        shade:
+          $ref: '#/components/schemas/ShadeRequest'
+      required:
+        - shade
+    ShadeSecondaryName:
+      description: The secondary name of the shade base64 encoded. Used by the Apple Home application as the secondary service name to control shades with blackout blinds or a top rail movement.'
+      type: string
+      format: byte
     ShadeType:
       description: 'The shade type.'
       type: integer
+    ShadeUpdate:
+      type: object
+      properties:
+        motion:
+          description: 'The motion operation to perform on a shade or group.'
+          type: string  
+          enum:
+            - down
+            - heart
+            - jog
+            - leftTilt
+            - rightTilt
+            - stop
+            - up
+          example: 'jog'
+        positions:
+          $ref: '#/components/schemas/ShadePosition'
+    ShadesResponse:
+      type: object
+      properties: 
+        shadeData:
+          description: 'Shade data for the included shades.'
+          type: array
+          items:
+            $ref: '#/components/schemas/Shade'
+        shadeIds:
+          description: 'Unique ids of all shades.'
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueId'
+      required:
+        - shadeData
+        - shadeIds
     StaticIp:
       description: 'True, if a static IP is assigned to the hub. False, if DHCP was used for IP address assignment.'
       type: boolean
