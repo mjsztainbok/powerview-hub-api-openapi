@@ -995,12 +995,16 @@ components:
         ip:
           $ref: '#/components/schemas/IpAddress'
         localTimeDataSet:
+          description: 'Whether or not time has been by the app or RemoteConnect.'
           type: boolean
         macAddress:
+          description: 'The MAC address of the hub.'
           type: string
+          example: '00:26:74:af:fd:ae'
         mask:
           $ref: '#/components/schemas/Mask'
         remoteConnectEnabled:
+          description: 'Whether the hub is currently registered with RemoteConnect.'
           type: boolean
         rfID:
           $ref: '#/components/schemas/RfID'
@@ -1013,11 +1017,16 @@ components:
         setupCompleted:
           $ref: '#/components/schemas/SetupComplete'
         ssid:
+          description: 'The service set identifier - the unique identifier for the wireless network.'
           type: string
+          example: 'cisco789'
         staticIp:
           $ref: '#/components/schemas/StaticIp'
         times:
           $ref: '#/components/schemas/Times'
+        wireless:
+          description: 'Whether the hub is using a wireless network.'
+          type: boolean
       required:
         - autoBackup
         - color
@@ -1040,6 +1049,7 @@ components:
         - ssid
         - staticIp
         - times
+        - wireless
     UserDataObject:
       type: object
       properties:
