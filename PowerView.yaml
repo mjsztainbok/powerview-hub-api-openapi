@@ -1,15 +1,16 @@
-openapi: '3.0.2'
+openapi: '3.0.3
+'
 info:
   title: 'Hunter Douglas PowerView® Hub API for Home Automation Integration'
   version: '2.0.0'
 servers:
-  - url: http://{hubAddress}/api
+  - url: http://{hubAddress}
     variables:
       hubAddress:
         description: 'The hostname or IP address of the PowerView hub'
         default: 'PowerView-Hub'
 paths:
-  /fwversion:
+  /api/fwversion:
     get:
       summary: 'Get firmware version information'
       operationId: getFirmwareVersionInformation
@@ -26,7 +27,7 @@ paths:
           description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
         500:
           description: 'Internal server error.'
-  /homeautomation:
+  /api/homeautomation:
     get:
       summary: 'Retrieve home automation settings and current state'
       operationId: getHomeAutomationSettings
@@ -103,7 +104,7 @@ paths:
           description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
         500:
           description: 'Internal server error.'
-  /homeautomation/report:
+  /api/homeautomation/report:
     get:
       summary: 'Retrieve position information following last move'
       operationId: getHomeAutomationReport
@@ -133,7 +134,205 @@ paths:
           description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
         500:
           description: 'Internal server error.'
-  /userdata:
+  /api/rooms:
+    get:
+      summary: 'Get all rooms'
+      operationId: 'getAllRooms'
+      tags:
+        - Rooms
+      description: |
+        - Gets a list of all room ids and the corresponding room data.
+        - The room data is return in the same order as the room ids.
+        - If no rooms exist, then empty arrays for room ids and room data are returned.
+      responses:
+        200:
+          description: 'Rooms returned.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomsResponse'
+              example:  |
+                  {
+                    "roomData" : [ {
+                      "colorId" : 18,
+                      "iconId" : 24,
+                      "id" : 7,
+                      "name" : "TmFtZQ==",
+                      "order" : 1,
+                      "type" : 0
+                    } ],
+                    "roomIds" : [ 7 ]
+                  }
+        400:
+          description: 'Bad request.'
+        423:
+          description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
+        500:
+          description: 'Internal server error.'
+    post:
+      summary: 'Create a new room'
+      operationId: 'createNewRoom'
+      tags: 
+        - Rooms
+      requestBody:
+        description: 'Room information. The id value is ignored and should be set to -1'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomObject'
+            example: |
+              {
+                "room" : {
+                  "colorId" : 18,
+                  "iconId" : 24,
+                  "id" : -1,
+                  "name" : "TmFtZQ==",
+                  "order" : 1,
+                  "type" : 0
+                }
+              }
+      responses:
+        201:
+          description: 'The room was created. id is set to the id of the new room.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomsResponse'
+              example: |
+                {
+                  "room" : {
+                    "colorId" : 18,
+                    "iconId" : 24,
+                    "id" : 7,
+                    "name" : "TmFtZQ==",
+                    "order" : 1,
+                    "type" : 0
+                  }
+                }
+        400:
+          description: 'Bad request.'
+        423:
+          description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
+        500:
+          description: 'Internal server error.'
+  /api/rooms/{id}:
+    get:
+      summary: 'Get a room'
+      operationId: 'getARoom'
+      tags:
+        - Rooms
+      parameters:
+        - name: 'id'
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 'Unique id of the resource.'
+      responses:
+        200:
+          description: 'Room returned.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomObject'
+              example: |
+                {
+                  "room" : {
+                    "colorId" : 18,
+                    "iconId" : 24,
+                    "id" : 7,
+                    "name" : "TmFtZQ==",
+                    "order" : 1,
+                    "type" : 0
+                  }
+                }
+        400:
+          description: 'Bad request.'
+        404:
+          description: 'Resource not found.'
+        423:
+          description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
+        500:
+          description: 'Internal server error.'
+    put:
+      summary: 'Update a room'
+      operationId: 'updateRoom'
+      tags:
+        - Rooms
+      parameters:
+        - name: 'id'
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 'Unique id of the resource.'
+      requestBody:
+        description: 'Updated room information. id must be the same as the value for id in the path.'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomObject'
+            example: |
+              {
+                "room" : {
+                  "colorId" : 18,
+                  "iconId" : 24,
+                  "id" : 7,
+                  "name" : "TmFtZQ==",
+                  "order" : 1,
+                  "type" : 0
+                }
+              }
+      responses:
+        200:
+          description: 'The room was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomsResponse'
+              example: |
+                {
+                  "room" : {
+                    "colorId" : 18,
+                    "iconId" : 24,
+                    "id" : 7,
+                    "name" : "TmFtZQ==",
+                    "order" : 1,
+                    "type" : 0
+                  }
+                }
+        400:
+          description: 'Bad request.'
+        423:
+          description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
+        500:
+          description: 'Internal server error.'
+    delete:
+      summary: 'Delete a room'
+      operationId: 'deleteRoom'
+      tags:
+        - Rooms
+      parameters:
+        - name: 'id'
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 'Unique id of the resource.'
+      responses:
+        204:
+          description: 'The room was deleted.'        
+        400:
+          description: 'Bad request.'
+        423:
+          description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
+        500:
+          description: 'Internal server error.'
+#  /api/scenecollections:
+#    get:  
+  /api/userdata:
     get:
       summary: 'Get user data'
       operationId: 'getUserData'
