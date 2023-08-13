@@ -1,0 +1,536 @@
+openapi: '3.0.2'
+info:
+  title: 'Hunter Douglas PowerView® Hub API for Home Automation Integration'
+  version: '2.0.0'
+servers:
+  - url: http://{hubAddress}/api
+    variables:
+      hubAddress:
+        description: 'The hostname or IP address of the PowerView hub'
+        default: 'PowerView-Hub'
+paths:
+  /fwversion:
+    get:
+      summary: 'Get firmware version information'
+      operationId: getFirmwareVersionInformation
+      tags:
+        - Firmware Version
+      responses:
+        200:
+          description: 'Firmware version returned.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HubFirmware'
+        423:
+          description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
+        500:
+          description: 'Internal server error.'
+  /homeautomation:
+    get:
+      summary: 'Retrieve home automation settings and current state'
+      operationId: getHomeAutomationSettings
+      tags:
+        - Home Automation
+        - Version 2 Hub Only
+      description: |
+        Version 2 Hub Only
+        - Returns enabled state. 
+        - Returns a configuration number that the hub will increment any time one or more shades fail
+          position verification. Failure includes a final position that differs significantly from its target
+          position and a non-responding shade.
+        - Position verification occurs for all single shade position set and group position set commands
+          and all scene and scene collection executions.
+        - Returns time interval used by the hub to delay requesting positions after the hub issues a
+          PowerView® command to modify positions.
+        - When a position setting command is received by the hub, if enabled, the hub starts a countdown timer loaded with the value of the timeoutSec option. If the timer is still running
+          due to a previous position setting command then the timer will be restarted.
+        - When the countdown timer expires the hub will issue a position request to the shades. If a
+        single shade is affected then the request will be addressed specifically to this shade. If more
+        than one shade is affected then the request will be broadcast to all shades in the network. A
+        nominal four seconds is required to complete the transaction. Multiple attempts to retrieve
+        position are made, if necessary.
+        - Returns active as true while the countdown timer is running or the hub is actively requesting
+        position from the shades.
+      responses:
+        200:
+          description: 'Home automation status and configuration is returned.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeautoRespObj'
+        400:
+          description: 'Bad request.'
+        423:
+          description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
+        500:
+          description: 'Internal server error.'
+    put:
+      summary: 'Configure home automation position verification options'
+      operationId: configureHomeAutomationPositionVerification
+      tags:
+        - Home Automation
+        - Version 2 Hub Only
+      description: |
+        Version 2 Hub Only
+        - Three parameters may be set: enabled, timeoutSec and configNum. Each parameter is optional.
+        Any parameter not included in the body of the message is left unchanged in the hub.
+        - Set enabled to true to configure the hub to verify final shade positions.
+        - Set configNum. This number defaults to zero from the factory. It is incremented whenever a
+        shade fails to verify to the correct position after a move. The value is saved in non-volatile
+        memory.
+        - Set timeoutSec in seconds. Valid range is between 15 and 300 seconds. This value should be set
+        to greater than the longest time it takes for any shade in the installation to move from a fully
+        closed to a fully opened position. Additional time should be allowed to account for a nearly
+        discharged battery.
+      requestBody:
+        description: 'Home automation configuration options'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeautoReqObj'
+      responses:
+        200:
+          description: 'Home automation options successfully updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeautoRespObj'
+        400:
+          description: 'Bad request.'
+        423:
+          description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
+        500:
+          description: 'Internal server error.'
+  /homeautomation/report:
+    get:
+      summary: 'Retrieve position information following last move'
+      operationId: getHomeAutomationReport
+      tags:
+        - Home Automation
+        - Version 2 Hub Only
+      description: |
+        Version 2 Hub Only
+        - Returns list of position data for shades involved in last move.
+        - For each shade, the last known position before the move, the target position and the reported
+        position are returned.
+        - If a shade failed to reach the target position, the state is returned as false. If the move was
+        successful, the state is returned true.
+        - If the shade failed to respond to repeated position requests, the timedOut parameter is set to
+        true.
+        - The returned list is valid when the homeautomation GET returns active as false.
+      responses:
+        200:
+          description: 'A report of the last move is returned.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeautomationReportObj'
+        400:
+          description: 'Bad request.'
+        423:
+          description: 'Hub is temporarily busy for maintenance (Always returns UserData).'
+        500:
+          description: 'Internal server error.'
+  /userdata:
+    get:
+      summary: 'Get user data'
+      operationId: 'getUserData'
+      tags:
+        - User Data
+      parameters:
+        - name: 'includeCounts'
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: 'Should counts of database objects, rooms,
+            shades, scenes, etc, be included in the returned
+            user data (This is an expensive operation that
+            should not normally be used).'
+      responses:
+        200:
+          description: User data returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDataObject'
+        400:
+          description: Bad client request.
+        423:
+          description: Hub is temporarily busy for maintenance (Always returns UserData).
+        500:
+          description: Internal server error.
+components:
+  schemas:
+    AutoBackup:
+      description: 'When true, backups will be sent periodically to the Hunter Douglas server. Otherwise, no automatic backups will occur.'
+      type: boolean
+    Color:
+      description: 'Specifies the colors of the LEDs.'
+      type: object
+      properties:
+        blue:
+          description: 'The intensity of the blue portion of the LED.'
+          type: number
+          minimum: 0
+          maximum: 255
+          example: 155
+        green:
+          description: 'The intensity of the green portion of the LED.'
+          type: integer
+          minimum: 0
+          maximum: 255
+          example: 107
+        red:
+          description: 'The intensity of the red portion of the LED.'
+          type: integer
+          minimum: 0
+          maximum: 255
+          example: 12
+        brightness:
+          description: 'The brightness of the LED, Range of 0 to 100%'
+          minimum: 0
+          maximum: 100
+          example: 50
+      required:
+        - blue
+        - green
+        - red
+        - brightness
+    Dns:
+      description: 'The DNS server IP address used by the hub.'
+      type: string
+    EditingEnabled:
+      description: 'Indicates whether or not the UI should "lock" editing (that is, only allow Scene activation and Shade movement within Rooms).'
+      type: boolean
+    EnableScheduledEvents:
+      description: 'When true, scheduled events should work as expected; when false, scheduled events should not
+        execute. Note that setting this field to true/false should not impact the "enabled" setting on
+        individual ScheduledEvents. It is a top-level override.'
+      type: boolean
+    Firmware:
+      properties:
+        build:
+          description: 'Patch firmware version number.'
+          type: integer
+          minimum: 0
+          maximum: 65535
+          example: 564
+        revision:
+          description: 'Major firmware version number.'
+          type: integer
+          minimum: 0
+          maximum: 255
+          example: 2
+        subRevision:
+          type: integer
+          minimum: 0
+          maximum: 255
+          example: 0
+      required:
+        - build
+        - revision
+        - subRevision
+    Gateway:
+      description: 'The gateway IP address used by the hub.'
+      type: string
+    HomeAutomationActive:
+      description: 'Returns true when the hub has sent a position set to a shade but the followup position request is not yet complete.'
+      type: boolean
+    HomeAutomationConfigNum:
+      description: 'Unique identified which is incremented whenever a shade fails to move to a position correctly.'
+      type: integer
+    HomeAutomationEnabled:
+      description: 'Position verification is enabled.'
+      type: boolean
+    HomeAutomationRequestTimeout:
+      description: 'Interval between a position set message to shade and a follow up position request.'
+      type: integer
+    HomeautoReqObj:
+      type: object
+      properties:
+        homeautomation:
+          $ref: '#/components/schemas/HomeautoReq'
+      required:
+        - homeautomation
+    HomeautoReq:
+      type: object
+      properties:
+        configNum:
+          $ref: '#/components/schemas/HomeAutomationConfigNum'
+        enabled:
+          $ref: '#/components/schemas/HomeAutomationEnabled'
+        timeoutSec:
+          $ref: '#/components/schemas/HomeAutomationRequestTimeout'
+    HomeautoRespObj:
+      type: object
+      properties:
+        homeautomation:
+          $ref: '#/components/schemas/HomeautoResp'
+      required:
+        - homeautomation
+    HomeautoResp:
+      type: object
+      properties:
+        active:
+          $ref: '#/components/schemas/HomeAutomationActive'
+        configNum:
+          $ref: '#/components/schemas/HomeAutomationConfigNum'
+        enabled:
+          $ref: '#/components/schemas/HomeAutomationEnabled'
+        timeoutSec:
+          $ref: '#/components/schemas/HomeAutomationRequestTimeout'
+    HomeautomationReport:
+      type: object
+      properties:
+        lastPos:
+          $ref: '#/components/schemas/ShadePosition'
+        reportedPos:
+          $ref: '#/components/schemas/ShadePosition'
+        shadeId:
+          $ref: '#/components/schemas/ShadeId'
+        state:
+          description: 'Returns true of the shade is at target position.'
+          type: boolean
+          example: true
+        targetPos:
+          $ref: '#/components/schemas/ShadePosition'
+        timedOut:
+          description: "Returns true if the shade failed to respond to a position request."
+          type: boolean
+          example: false
+        type:
+          $ref: '#/components/schemas/ShadeType'
+    HomeautomationReportObj:
+      type: object
+      properties:
+        report:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeautomationReport'
+      required:
+       - report
+    HubName:
+      description: 'Base64-encoded hub name.'
+      type: string
+    HubFirmware:
+      description: 'There are multiple processors in the hub (the primary processor and the Nordic chip for RF processing); the "mainProcessor" sub-key is intended to indicate that the firmware information being returned is for the main processor on the hub, not the Nordic.'
+      type: object
+      properties:
+        mainProcessor:
+          $ref: '#/components/schemas/MainProcessorFirmware'
+        radio:
+          $ref: '#/components/schemas/Firmware'
+      required:
+        - mainProcessor
+        - radio
+    HubFirmwareObject:
+      properties:
+        firmware:
+          $ref: '#/components/schemas/HubFirmware'
+      required:
+        - firmware
+    IpAddress:
+      type: string
+    Latitude:
+      description: 'Latitude.'
+      type: number
+    LocalSunriseTimeInMinutes:
+      description: 'Number of minutes into the day that sunrise occurs (based on lat/long).'
+      type: integer
+    LocalSunsetTimeInMinutes:
+      description: 'Number of minutes into the day that sunset occurs (based on lat/long).'
+      type: integer
+    Longitude:
+      description: 'Longitude.'
+      type: number
+    MainProcessorFirmware:
+      allOf:
+        - $ref: '#/components/schemas/Firmware'
+        - properties:
+            name:
+              type: string
+      required:
+        - name
+    Mask:
+      description: 'The network mask used by the hub.'
+      type: string
+    Offset:
+      description: 'Number of seconds before or after UTC.'
+      type: integer
+    PositionKind1:
+      description: 'The type of position - 0 = None, 1 = Primary Rail, 2 = Secondary Rail, 3 = Vane Tilt, 4 = Error.'
+      type: integer
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+    PositionKind2:
+      description: 'The type of position - 0 = None, 1 = Primary Rail, 2 = Secondary Rail, 3 = Vane Tilt, 4 = Error.'
+      type: integer
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+    PositionValue1:
+      description: 'The value, with 0 = closed and 65535 = open.'
+      type: integer
+      minimum: 0
+      maximum: 65535
+    PositionValue2:
+      description: 'The value, with 0 = closed and 65535 = open.'
+      type: integer
+      minimum: 0
+      maximum: 65535
+    RfID:
+      description: 'The ID of the RF network on which the hub talks to shades, represented in hexadecimal. 0x1111 or 0xFFFF both mean "no network set.'
+      type: string
+    RfIDInt:
+      description: 'The integer value of the RF network ID on which the hub talks to shades. Values of 4369 or 65535 indicate that no network has been set.'
+      type: integer
+    RfStatus:
+      description: '0 means the hub is not busy; 1 means the hub is busy (discovering shades, joining a network, etc).'
+      type: integer
+      enum:
+        - 0
+        - 1
+    SerialNumber:
+      description: 'The unique id/serial number of the hub or device.'
+      type: string
+    SetupComplete:
+      description: 'Indicates whether the initial setup of a hub has been completed.'
+      type: boolean
+    ShadeId:
+      $ref: '#/components/schemas/UniqueId'
+    ShadePosition:
+      description: |
+        Specifies the position of the shade. Top-down shades are in the same coordinate space as bottom-up
+        shades. Shade position values for top-down shades would be reversed for bottom-up shades. For
+        example, since 65535 is the open value for a bottom-up shade, it is the closed value for a top-down
+        shade. The top-down/bottom-up shade is different in that instead of the top and bottom rail
+        operating in one coordinate space like the top-down and the bottom-up, it operates in two where
+        the top (middle) rail closed value is 0 and the bottom (primary) rail closed position is also 0 and
+        fully open for both is 65535.
+      type: object
+      properties:
+        posKind1:
+          $ref: '#/components/schemas/PositionKind1'
+        posKind2:
+          $ref: '#/components/schemas/PositionKind2'
+        position1:
+          $ref: '#/components/schemas/PositionValue1'
+        position2:
+          $ref: '#/components/schemas/PositionValue2'
+      required:
+        - posKind1
+        - position1
+    ShadeType:
+      description: 'The shade type.'
+      type: integer
+    StaticIp:
+      description: 'True, if a static IP is assigned to the hub. False, if DHCP was used for IP address assignment.'
+      type: boolean
+    Times:
+      properties:
+        currentOffset:
+          $ref: '#/components/schemas/Offset'
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+        localSunriseTimeInMinutes:
+          $ref: '#/components/schemas/LocalSunriseTimeInMinutes'
+        localSunsetTimeInMinutes:
+          $ref: '#/components/schemas/LocalSunsetTimeInMinutes'
+        longitude:
+          $ref: '#/components/schemas/Longitude'
+        timezone:
+          $ref: '#/components/schemas/Timezone'
+      required:
+        - currentOffset
+        - timezone
+    Timezone:
+      description: 'Timezone name.'
+      type: string
+    UniqueId:
+      description: 'Unique resource identifier.'
+      type: integer
+    UserData:
+      type: object
+      properties:
+        autoBackup:
+          $ref: '#/components/schemas/AutoBackup'
+        color:
+          description: 'Specifies the color of the repeater LEDs.'
+          $ref: '#/components/schemas/Color'
+        dns:
+          $ref: '#/components/schemas/Dns'
+        editingEnabled:
+          $ref: '#/components/schemas/EditingEnabled'
+        enableScheduledEvents:
+          $ref: '#/components/schemas/EnableScheduledEvents'
+        firmware:
+          $ref: '#/components/schemas/HubFirmware'
+        gateway:
+          $ref: '#/components/schemas/Gateway'
+        hubName:
+          $ref: '#/components/schemas/HubName'
+        ip:
+          $ref: '#/components/schemas/IpAddress'
+        localTimeDataSet:
+          type: boolean
+        macAddress:
+          type: string
+        mask:
+          $ref: '#/components/schemas/Mask'
+        remoteConnectEnabled:
+          type: boolean
+        rfID:
+          $ref: '#/components/schemas/RfID'
+        rfIDInt:
+          $ref: '#/components/schemas/RfIDInt'
+        rfStatus:
+          $ref: '#/components/schemas/RfStatus'
+        serialNumber:
+          $ref: '#/components/schemas/SerialNumber'
+        setupCompleted:
+          $ref: '#/components/schemas/SetupComplete'
+        ssid:
+          type: string
+        staticIp:
+          $ref: '#/components/schemas/StaticIp'
+        times:
+          $ref: '#/components/schemas/Times'
+      required:
+        - autoBackup
+        - color
+        - dns
+        - editingEnabled
+        - enableScheduledEvents
+        - firmware
+        - gateway
+        - hubName
+        - ip
+        - localTimeDataSet
+        - macAddress
+        - mask
+        - remoteConnectEnabled
+        - rfID
+        - rfIDInt
+        - rfStatus
+        - serialNumber
+        - setupComplete
+        - ssid
+        - staticIp
+        - times
+    UserDataObject:
+      type: object
+      properties:
+        userData:
+          $ref: '#/components/schemas/UserData'
+      required:
+        - userData
